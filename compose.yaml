@@ -1,0 +1,15 @@
+services:
+  item-service:
+    container_name: item-service
+    build:
+      context: ./service/item-service
+      dockerfile: ./build/docker/Dockerfile
+    environment:
+      - ITEM_SERVICE_PORT
+    ports:
+      - $ITEM_SERVICE_PORT:$ITEM_SERVICE_PORT
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:$ITEM_SERVICE_PORT/healthz || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
