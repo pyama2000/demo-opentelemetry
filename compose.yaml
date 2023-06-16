@@ -7,9 +7,9 @@ services:
     environment:
       - ITEM_SERVICE_PORT
     ports:
-      - $ITEM_SERVICE_PORT:$ITEM_SERVICE_PORT
+      - "${ITEM_SERVICE_PORT}:${ITEM_SERVICE_PORT}"
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:$ITEM_SERVICE_PORT/healthz || exit 1"]
+      test: ["CMD", "/usr/bin/wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${ITEM_SERVICE_PORT}/healthz"]
       interval: 10s
       timeout: 10s
       retries: 3
