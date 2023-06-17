@@ -22,6 +22,6 @@ services:
     restart: always
     command: ["--config=/etc/config.yaml"]
     volumes:
-      - ./opentelemetry-collector/config.yaml:/etc/config.yaml
+      - ./config/opentelemetry-collector/config.yaml:/etc/config.yaml
     ports:
       - "${OPEN_TELEMETRY_GRPC_PORT}:4318"
