@@ -13,3 +13,13 @@ services:
       interval: 10s
       timeout: 10s
       retries: 3
+    depends_on:
+      opentelemetry-collector:
+        condition: service_started
+  opentelemetry-collector:
+    image: otel/opentelemetry-collector-contrib:0.79.0
+    container_name: opentelemetry-collector
+    restart: always
+    command: ["--config=/etc/config.yaml"]
+    volumes:
+      - ./config/opentelemetry-collector/config.yaml:/etc/config.yaml
