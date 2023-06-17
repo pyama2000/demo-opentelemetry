@@ -23,5 +23,3 @@ services:
     command: ["--config=/etc/config.yaml"]
     volumes:
       - ./config/opentelemetry-collector/config.yaml:/etc/config.yaml
-    ports:
-      - "${OPEN_TELEMETRY_GRPC_PORT}:4318"
