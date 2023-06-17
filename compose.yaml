@@ -14,14 +14,14 @@ services:
       timeout: 10s
       retries: 3
     depends_on:
-      open-telemetry-collector:
+      opentelemetry-collector:
         condition: service_started
-  open-telemetry-collector:
+  opentelemetry-collector:
     image: otel/opentelemetry-collector-contrib:0.79.0
-    container_name: open-telemetry-collector
+    container_name: opentelemetry-collector
     restart: always
     command: ["--config=/etc/config.yaml"]
     volumes:
-      - ./open-telemetry-collector/config.yaml:/etc/config.yaml
+      - ./opentelemetry-collector/config.yaml:/etc/config.yaml
     ports:
       - "${OPEN_TELEMETRY_GRPC_PORT}:4318"
