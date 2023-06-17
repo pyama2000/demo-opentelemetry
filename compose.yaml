@@ -23,3 +23,22 @@ services:
     command: ["--config=/etc/config.yaml"]
     volumes:
       - ./config/opentelemetry-collector/config.yaml:/etc/config.yaml
+    ports:
+      - "9464" # Prometheus exporter
+      - "8888" # OpenTelemetry metrics
+  prometheus:
+    image: prom/prometheus:v2.44.0
+    container_name: prometheus
+    command:
+      - --web.console.templates=/etc/prometheus/consoles
+      - --web.console.libraries=/etc/prometheus/console_libraries
+      - --storage.tsdb.retention.time=1h
+      - --config.file=/etc/prometheus/config.yaml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+      - --web.route-prefix=/
+      - --enable-feature=exemplar-storage
+    volumes:
+      - ./config/prometheus/config.yaml:/etc/prometheus/config.yaml
+    ports:
+      - "${PROMETHEUS_PORT}:9090"
