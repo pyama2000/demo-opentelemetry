@@ -1,0 +1,42 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+  prometheus/otel-collector:
+    config:
+      scrape_configs:
+      - job_name: 'otel-collector'
+        scrape_interval: 10s
+        static_configs:
+        - targets: ['0.0.0.0:8888']
+  hostmetrics:
+    collection_interval: 10s
+    scrapers:
+      load:
+      filesystem:
+      memory:
+      network:
+processors:
+  batch:
+exporters:
+  logging:
+    loglevel: debug
+  prometheus:
+    endpoint: "opentelemetry-collector:9464"
+    resource_to_telemetry_conversion:
+      enabled: true
+    enable_open_metrics: true
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [logging]
+    metrics:
+      receivers: [otlp, prometheus/otel-collector, hostmetrics]
+      processors: [batch]
+      exporters: [logging, prometheus]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [logging]
