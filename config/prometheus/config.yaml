@@ -7,7 +7,9 @@ scrape_configs:
   static_configs:
   - targets:
     - 'opentelemetry-collector:9464'
+    # - 'host.docker.internal:9464'
 - job_name: otel-collector
   static_configs:
   - targets:
     - 'opentelemetry-collector:8888'
+    # - 'host.docker.internal:8888'
