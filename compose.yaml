@@ -46,8 +46,15 @@ services:
     image: grafana/grafana:10.0.0
     container_name: grafana
     restart: always
+    volumes:
+      - ./config/grafana/config.ini:/etc/grafana/grafana.ini
     ports:
       - "${GRAFANA_PORT}:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://0.0.0.0:${GRAFANA_PORT}/api/health || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
     depends_on:
       prometheus:
         condition: service_started
