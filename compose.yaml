@@ -24,8 +24,8 @@ services:
     volumes:
       - ./config/opentelemetry-collector/config.yaml:/etc/config.yaml
     ports:
-      - "9464" # Prometheus exporter
-      - "8888" # OpenTelemetry metrics
+      - "9464:9464" # Prometheus exporter
+      - "8888:8888" # OpenTelemetry metrics
   prometheus:
     image: prom/prometheus:v2.44.0
     container_name: prometheus
