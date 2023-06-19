@@ -48,6 +48,7 @@ services:
     restart: always
     volumes:
       - ./config/grafana/config.ini:/etc/grafana/grafana.ini
+      - ./config/grafana/provisioning/:/etc/grafana/provisioning/
     ports:
       - "${GRAFANA_PORT}:3000"
     healthcheck:
