@@ -42,3 +42,14 @@ services:
       - ./config/prometheus/config.yaml:/etc/prometheus/config.yaml
     ports:
       - "${PROMETHEUS_PORT}:9090"
+  jaeger:
+    image: jaegertracing/all-in-one:1.46.0
+    container_name: jaeger
+    command:
+      - "--memory.max-traces"
+      - "10000"
+      - "--query.base-path"
+      - "/jaeger/ui"
+    ports:
+      - "${JAEGER_PORT}:${JAEGER_PORT}"
+      - "4317"
