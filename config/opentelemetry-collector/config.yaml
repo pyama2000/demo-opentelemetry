@@ -31,12 +31,16 @@ exporters:
     resource_to_telemetry_conversion:
       enabled: true
     enable_open_metrics: true
+  jaeger:
+    endpoint: "jaeger:4317"
+    tls:
+      insecure: true
 service:
   pipelines:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [logging]
+      exporters: [logging, jaeger]
     metrics:
       receivers: [otlp, prometheus/otel-collector, hostmetrics]
       processors: [batch]
