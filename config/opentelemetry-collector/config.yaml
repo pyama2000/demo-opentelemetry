@@ -12,9 +12,14 @@ receivers:
   hostmetrics:
     collection_interval: 10s
     scrapers:
-      load:
-      filesystem:
+      cpu:
+        metrics:
+          system.cpu.utilization:
+            enabled: true
       memory:
+        metrics:
+          system.memory.utilization:
+            enabled: true
       network:
 processors:
   batch:
