@@ -13,11 +13,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let metrics = init_metrics()?;
     tracing_subscriber::registry()
         .with(tracing_subscriber::fmt::layer())
-        .with(
-            tracing_subscriber::EnvFilter::builder()
-                .with_default_directive(tracing_subscriber::filter::LevelFilter::INFO.into())
-                .from_env_lossy(),
-        )
+        .with(tracing_subscriber::filter::LevelFilter::INFO)
         .with(tracing_opentelemetry::layer().with_tracer(tracer))
         .with(tracing_opentelemetry::MetricsLayer::new(metrics))
         .try_init()?;

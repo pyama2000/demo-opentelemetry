@@ -17,4 +17,4 @@ tokio = { version = "1.28.2", default-features = false, features = ["rt", "macro
 tower-http = { version = "0.4.0", features = ["trace", "catch-panic"] }
 tracing = "0.1.37"
 tracing-opentelemetry = "0.18.0"
-tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
+tracing-subscriber = "0.3.17"
