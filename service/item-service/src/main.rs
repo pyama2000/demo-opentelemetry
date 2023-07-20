@@ -10,6 +10,7 @@ use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let tracer = init_tracer()?;
+    let metrics = init_metrics()?;
     tracing_subscriber::registry()
         .with(tracing_subscriber::fmt::layer())
         .with(
@@ -18,6 +19,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .from_env_lossy(),
         )
         .with(tracing_opentelemetry::layer().with_tracer(tracer))
+        .with(tracing_opentelemetry::MetricsLayer::new(metrics))
         .try_init()?;
 
     let app = Router::new()
@@ -85,7 +87,7 @@ fn init_tracer() -> Result<opentelemetry_sdk::trace::Tracer, opentelemetry_api::
         .with_exporter(
             opentelemetry_otlp::new_exporter()
                 .tonic()
-                .with_endpoint("http://localhost:4317"),
+                .with_endpoint("http://localhost:4317/v1/traces"),
         )
         .with_trace_config(opentelemetry_sdk::trace::config().with_resource(
             opentelemetry_sdk::Resource::new(vec![opentelemetry_api::KeyValue::new(
@@ -94,4 +96,24 @@ fn init_tracer() -> Result<opentelemetry_sdk::trace::Tracer, opentelemetry_api::
             )]),
         ))
         .install_batch(opentelemetry_sdk::runtime::Tokio)
+}
+
+// NOTE: metrics を送るには info を特定の形にする必要がある
+// read mores: https://blog.ymgyt.io/entry/starting_opentelemetry_with_rust/#prometheus
+fn init_metrics() -> Result<
+    opentelemetry_sdk::metrics::controllers::BasicController,
+    opentelemetry_api::metrics::MetricsError,
+> {
+    opentelemetry_otlp::new_pipeline()
+        .metrics(
+            opentelemetry_sdk::metrics::selectors::simple::inexpensive(),
+            opentelemetry_sdk::export::metrics::aggregation::cumulative_temporality_selector(),
+            opentelemetry_sdk::runtime::Tokio,
+        )
+        .with_exporter(
+            opentelemetry_otlp::new_exporter()
+                .tonic()
+                .with_endpoint("http://localhost:4317"),
+        )
+        .build()
 }
