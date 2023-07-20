@@ -77,7 +77,7 @@ async fn shutdown_signal() {
     tracing::info!("signal received, starting graceful shutdown");
 }
 
-fn init_tracer() -> Result<opentelemetry::sdk::trace::Tracer, opentelemetry_api::trace::TraceError> {
+fn init_tracer() -> Result<opentelemetry::sdk::trace::Tracer, opentelemetry::trace::TraceError> {
     opentelemetry_otlp::new_pipeline()
         .tracing()
         .with_exporter(
@@ -86,7 +86,7 @@ fn init_tracer() -> Result<opentelemetry::sdk::trace::Tracer, opentelemetry_api:
                 .with_endpoint("http://localhost:4317/v1/traces"),
         )
         .with_trace_config(opentelemetry::sdk::trace::config().with_resource(
-            opentelemetry::sdk::Resource::new(vec![opentelemetry_api::KeyValue::new(
+            opentelemetry::sdk::Resource::new(vec![opentelemetry::KeyValue::new(
                 opentelemetry_semantic_conventions::resource::SERVICE_NAME,
                 "item-service",
             )]),
@@ -98,7 +98,7 @@ fn init_tracer() -> Result<opentelemetry::sdk::trace::Tracer, opentelemetry_api:
 // read mores: https://blog.ymgyt.io/entry/starting_opentelemetry_with_rust/#prometheus
 fn init_metrics() -> Result<
     opentelemetry::sdk::metrics::controllers::BasicController,
-    opentelemetry_api::metrics::MetricsError,
+    opentelemetry::metrics::MetricsError,
 > {
     opentelemetry_otlp::new_pipeline()
         .metrics(

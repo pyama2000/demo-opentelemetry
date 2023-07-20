@@ -11,7 +11,6 @@ hyper = { version = "0.14.26", default-features = false, features = ["server"] }
 opentelemetry = { version = "0.18.0", features = ["rt-tokio", "trace", "metrics"] }
 opentelemetry-otlp = { version = "0.11.0", features = ["tonic", "trace", "metrics"] }
 opentelemetry-semantic-conventions = "0.10.0"
-opentelemetry_api = { version = "0.18.0", features = ["trace"] }
 tokio = { version = "1.28.2", default-features = false, features = ["rt", "macros", "rt-multi-thread", "signal"] }
 tower-http = { version = "0.4.0", features = ["trace", "catch-panic"] }
 tracing = "0.1.37"

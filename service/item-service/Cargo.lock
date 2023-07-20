@@ -504,7 +504,6 @@ dependencies = [
  "opentelemetry",
  "opentelemetry-otlp",
  "opentelemetry-semantic-conventions",
- "opentelemetry_api",
  "tokio",
  "tower-http",
  "tracing",
