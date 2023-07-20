@@ -10,6 +10,7 @@ axum = { version = "0.6.18", features = ["tracing"] }
 hyper = { version = "0.14.26", default-features = false, features = ["server"] }
 opentelemetry = { version = "0.18.0", features = ["rt-tokio"] }
 opentelemetry-otlp = { version = "0.11.0", features = ["tonic", "trace"] }
+opentelemetry-semantic-conventions = "0.10.0"
 opentelemetry_api = { version = "0.18.0", features = ["trace"] }
 opentelemetry_sdk = { version = "0.18.0", features = ["rt-tokio"] }
 tokio = { version = "1.28.2", default-features = false, features = ["rt", "macros", "rt-multi-thread", "signal"] }

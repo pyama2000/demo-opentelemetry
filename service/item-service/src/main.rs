@@ -89,7 +89,7 @@ fn init_tracer() -> Result<opentelemetry_sdk::trace::Tracer, opentelemetry_api::
         )
         .with_trace_config(opentelemetry_sdk::trace::config().with_resource(
             opentelemetry_sdk::Resource::new(vec![opentelemetry_api::KeyValue::new(
-                "service.name",
+                opentelemetry_semantic_conventions::resource::SERVICE_NAME,
                 "item-service",
             )]),
         ))
