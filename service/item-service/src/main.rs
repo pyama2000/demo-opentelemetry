@@ -77,7 +77,7 @@ async fn shutdown_signal() {
     tracing::info!("signal received, starting graceful shutdown");
 }
 
-fn init_tracer() -> Result<opentelemetry_sdk::trace::Tracer, opentelemetry_api::trace::TraceError> {
+fn init_tracer() -> Result<opentelemetry::sdk::trace::Tracer, opentelemetry_api::trace::TraceError> {
     opentelemetry_otlp::new_pipeline()
         .tracing()
         .with_exporter(
@@ -85,26 +85,26 @@ fn init_tracer() -> Result<opentelemetry_sdk::trace::Tracer, opentelemetry_api::
                 .tonic()
                 .with_endpoint("http://localhost:4317/v1/traces"),
         )
-        .with_trace_config(opentelemetry_sdk::trace::config().with_resource(
-            opentelemetry_sdk::Resource::new(vec![opentelemetry_api::KeyValue::new(
+        .with_trace_config(opentelemetry::sdk::trace::config().with_resource(
+            opentelemetry::sdk::Resource::new(vec![opentelemetry_api::KeyValue::new(
                 opentelemetry_semantic_conventions::resource::SERVICE_NAME,
                 "item-service",
             )]),
         ))
-        .install_batch(opentelemetry_sdk::runtime::Tokio)
+        .install_batch(opentelemetry::sdk::runtime::Tokio)
 }
 
 // NOTE: metrics を送るには info を特定の形にする必要がある
 // read mores: https://blog.ymgyt.io/entry/starting_opentelemetry_with_rust/#prometheus
 fn init_metrics() -> Result<
-    opentelemetry_sdk::metrics::controllers::BasicController,
+    opentelemetry::sdk::metrics::controllers::BasicController,
     opentelemetry_api::metrics::MetricsError,
 > {
     opentelemetry_otlp::new_pipeline()
         .metrics(
-            opentelemetry_sdk::metrics::selectors::simple::inexpensive(),
-            opentelemetry_sdk::export::metrics::aggregation::cumulative_temporality_selector(),
-            opentelemetry_sdk::runtime::Tokio,
+            opentelemetry::sdk::metrics::selectors::simple::inexpensive(),
+            opentelemetry::sdk::export::metrics::aggregation::cumulative_temporality_selector(),
+            opentelemetry::sdk::runtime::Tokio,
         )
         .with_exporter(
             opentelemetry_otlp::new_exporter()
