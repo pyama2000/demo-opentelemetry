@@ -8,7 +8,12 @@ edition = "2021"
 [dependencies]
 axum = { version = "0.6.18", features = ["tracing"] }
 hyper = { version = "0.14.26", default-features = false, features = ["server"] }
+opentelemetry = { version = "0.18.0", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.11.0", features = ["tonic", "trace"] }
+opentelemetry_api = { version = "0.18.0", features = ["trace"] }
+opentelemetry_sdk = { version = "0.18.0", features = ["rt-tokio"] }
 tokio = { version = "1.28.2", default-features = false, features = ["rt", "macros", "rt-multi-thread", "signal"] }
 tower-http = { version = "0.4.0", features = ["trace", "catch-panic"] }
 tracing = "0.1.37"
-tracing-subscriber = "0.3.17"
+tracing-opentelemetry = "0.18.0"
+tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }

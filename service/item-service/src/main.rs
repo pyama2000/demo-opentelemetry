@@ -1,13 +1,24 @@
 use axum::{http::StatusCode, routing::get, Router};
+use opentelemetry_otlp::WithExportConfig as _;
 use tower_http::{
     catch_panic::CatchPanicLayer,
     trace::{self, TraceLayer},
 };
 use tracing::Level;
+use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tracing_subscriber::fmt::init();
+    let tracer = init_tracer()?;
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::fmt::layer())
+        .with(
+            tracing_subscriber::EnvFilter::builder()
+                .with_default_directive(tracing_subscriber::filter::LevelFilter::INFO.into())
+                .from_env_lossy(),
+        )
+        .with(tracing_opentelemetry::layer().with_tracer(tracer))
+        .try_init()?;
 
     let app = Router::new()
         .route("/healthz", get(|| async { StatusCode::OK }))
@@ -29,6 +40,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .serve(app.into_make_service())
         .with_graceful_shutdown(shutdown_signal())
         .await?;
+
+    opentelemetry::global::shutdown_tracer_provider();
 
     Ok(())
 }
@@ -57,4 +70,21 @@ async fn shutdown_signal() {
     }
 
     tracing::info!("signal received, starting graceful shutdown");
+}
+
+fn init_tracer() -> Result<opentelemetry_sdk::trace::Tracer, opentelemetry_api::trace::TraceError> {
+    opentelemetry_otlp::new_pipeline()
+        .tracing()
+        .with_exporter(
+            opentelemetry_otlp::new_exporter()
+                .tonic()
+                .with_endpoint("http://localhost:4317"),
+        )
+        .with_trace_config(opentelemetry_sdk::trace::config().with_resource(
+            opentelemetry_sdk::Resource::new(vec![opentelemetry_api::KeyValue::new(
+                "service.name",
+                "item-service",
+            )]),
+        ))
+        .install_batch(opentelemetry_sdk::runtime::Tokio)
 }
