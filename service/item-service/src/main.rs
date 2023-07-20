@@ -23,6 +23,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = Router::new()
         .route("/healthz", get(|| async { StatusCode::OK }))
         .route("/panic", get(|| async { panic!("panic occured") }))
+        .route(
+            "/error",
+            get(|| async {
+                tracing::error!("error occured");
+                StatusCode::INTERNAL_SERVER_ERROR
+            }),
+        )
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
