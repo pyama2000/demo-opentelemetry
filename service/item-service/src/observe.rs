@@ -3,11 +3,16 @@ use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _
 
 pub const LOG_LEVEL: tracing::Level = tracing::Level::INFO;
 
-pub fn init() -> Result<impl Fn(), Box<dyn std::error::Error>> {
+pub fn init(
+    otel_schema_url: &str,
+    otel_endpoint: &str,
+) -> Result<impl Fn(), Box<dyn std::error::Error>> {
     opentelemetry::global::set_text_map_propagator(
         opentelemetry::sdk::propagation::TraceContextPropagator::new(),
     );
-    init_subscriber()?;
+    let tracer = init_tracer(otel_schema_url, otel_endpoint)?;
+    let metrics = init_metrics(otel_endpoint)?;
+    init_subscriber(tracer, metrics)?;
     Ok(|| opentelemetry::global::shutdown_tracer_provider())
 }
 
@@ -20,9 +25,10 @@ pub fn trace_layer() -> tower_http::trace::TraceLayer<
         .on_response(tower_http::trace::DefaultOnResponse::new().level(LOG_LEVEL))
 }
 
-fn init_subscriber() -> Result<(), Box<dyn std::error::Error>> {
-    let tracer = init_tracer()?;
-    let metrics = init_metrics()?;
+fn init_subscriber(
+    tracer: opentelemetry::sdk::trace::Tracer,
+    metrics: opentelemetry::sdk::metrics::controllers::BasicController,
+) -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::registry()
         .with(tracing_subscriber::fmt::layer())
         .with(tracing_subscriber::filter::LevelFilter::INFO)
@@ -32,7 +38,10 @@ fn init_subscriber() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn init_tracer() -> Result<opentelemetry::sdk::trace::Tracer, opentelemetry::trace::TraceError> {
+fn init_tracer(
+    otel_schema_url: impl Into<String>,
+    otel_endpoint: impl Into<String>,
+) -> Result<opentelemetry::sdk::trace::Tracer, opentelemetry::trace::TraceError> {
     opentelemetry_otlp::new_pipeline()
         .tracing()
         .with_trace_config(
@@ -49,20 +58,20 @@ fn init_tracer() -> Result<opentelemetry::sdk::trace::Tracer, opentelemetry::tra
                             env!("CARGO_PKG_VERSION"),
                         ),
                     ],
-                    "https://opentelemetry.io/schemas/1.20.0",
+                    otel_schema_url.into(),
                 )),
         )
         .with_exporter(
             opentelemetry_otlp::new_exporter()
                 .tonic()
-                .with_endpoint("http://localhost:4317"),
+                .with_endpoint(otel_endpoint),
         )
         .install_batch(opentelemetry::sdk::runtime::Tokio)
 }
 
 // NOTE: metrics を送るには info を特定の形にする必要がある
 // read mores: https://blog.ymgyt.io/entry/starting_opentelemetry_with_rust/#prometheus
-fn init_metrics() -> Result<
+fn init_metrics(otel_endpoint: impl Into<String>) -> Result<
     opentelemetry::sdk::metrics::controllers::BasicController,
     opentelemetry::metrics::MetricsError,
 > {
@@ -75,7 +84,7 @@ fn init_metrics() -> Result<
         .with_exporter(
             opentelemetry_otlp::new_exporter()
                 .tonic()
-                .with_endpoint("http://localhost:4317"),
+                .with_endpoint(otel_endpoint),
         )
         .build()
 }

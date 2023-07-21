@@ -1,12 +1,14 @@
 use axum::{http::StatusCode, routing::get, Router};
 use tower_http::catch_panic::CatchPanicLayer;
 
+mod config;
 mod observe;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let shutdown_tracer =
-        observe::init().unwrap_or_else(|e| panic!("failed to init observer: {}", e));
+    let config = config::Config::from_env();
+    let shutdown_tracer = observe::init(&config.otel.schema_url, &config.otel.endpoint)
+        .unwrap_or_else(|e| panic!("failed to init observer: {}", e));
 
     let app = Router::new()
         .route("/healthz", get(|| async { StatusCode::OK }))
