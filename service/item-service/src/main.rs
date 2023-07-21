@@ -4,11 +4,14 @@ use tower_http::{
     catch_panic::CatchPanicLayer,
     trace::{self, TraceLayer},
 };
-use tracing::{Level, instrument};
+use tracing::{instrument, Level};
 use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    opentelemetry::global::set_text_map_propagator(
+        opentelemetry::sdk::propagation::TraceContextPropagator::new(),
+    );
     let tracer = init_tracer()?;
     let metrics = init_metrics()?;
     tracing_subscriber::registry()
