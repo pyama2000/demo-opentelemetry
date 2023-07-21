@@ -4,7 +4,7 @@ use tower_http::{
     catch_panic::CatchPanicLayer,
     trace::{self, TraceLayer},
 };
-use tracing::Level;
+use tracing::{Level, instrument};
 use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _};
 
 #[tokio::main]
@@ -28,6 +28,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 StatusCode::INTERNAL_SERVER_ERROR
             }),
         )
+        .route("/span", get(span))
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
@@ -49,6 +50,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     opentelemetry::global::shutdown_tracer_provider();
 
     Ok(())
+}
+
+#[instrument]
+async fn span() {
+    tracing::event!(Level::INFO, "sleep event");
+    tokio::join!(sleep_500ms(), sleep_1500ms());
+}
+
+#[instrument]
+async fn sleep_500ms() {
+    tracing::info!("start");
+    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+    tracing::info!("finish");
+}
+
+#[instrument]
+async fn sleep_1500ms() {
+    tracing::info!("start");
+    tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
+    tracing::info!("finish");
 }
 
 async fn shutdown_signal() {
