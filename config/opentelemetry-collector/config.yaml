@@ -32,7 +32,7 @@ exporters:
       enabled: true
     enable_open_metrics: true
   jaeger:
-    endpoint: "jaeger:4317"
+    endpoint: "jaeger:14250"
     tls:
       insecure: true
 service:
