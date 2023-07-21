@@ -500,7 +500,6 @@ name = "item_service"
 version = "0.1.0"
 dependencies = [
  "axum",
- "hyper",
  "opentelemetry",
  "opentelemetry-otlp",
  "opentelemetry-semantic-conventions",
