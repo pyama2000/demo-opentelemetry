@@ -107,14 +107,25 @@ fn init_tracer() -> Result<opentelemetry::sdk::trace::Tracer, opentelemetry::tra
         .with_exporter(
             opentelemetry_otlp::new_exporter()
                 .tonic()
-                .with_endpoint("http://localhost:4317/v1/traces"),
+                .with_endpoint("http://localhost:4317"),
         )
-        .with_trace_config(opentelemetry::sdk::trace::config().with_resource(
-            opentelemetry::sdk::Resource::new(vec![opentelemetry::KeyValue::new(
-                opentelemetry_semantic_conventions::resource::SERVICE_NAME,
-                "item-service",
-            )]),
-        ))
+        .with_trace_config(
+            opentelemetry::sdk::trace::config()
+                .with_id_generator(opentelemetry::sdk::trace::RandomIdGenerator::default())
+                .with_resource(opentelemetry::sdk::Resource::from_schema_url(
+                    [
+                        opentelemetry::KeyValue::new(
+                            opentelemetry_semantic_conventions::resource::SERVICE_NAME,
+                            env!("CARGO_PKG_NAME"),
+                        ),
+                        opentelemetry::KeyValue::new(
+                            opentelemetry_semantic_conventions::resource::SERVICE_VERSION,
+                            env!("CARGO_PKG_VERSION"),
+                        ),
+                    ],
+                    "https://opentelemetry.io/schemas/1.20.0",
+                )),
+        )
         .install_batch(opentelemetry::sdk::runtime::Tokio)
 }
 
