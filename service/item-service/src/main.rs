@@ -1,25 +1,12 @@
 use axum::{http::StatusCode, routing::get, Router};
-use opentelemetry_otlp::WithExportConfig as _;
-use tower_http::{
-    catch_panic::CatchPanicLayer,
-    trace::{self, TraceLayer},
-};
-use tracing::{instrument, Level};
-use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _};
+use tower_http::catch_panic::CatchPanicLayer;
+
+mod observe;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    opentelemetry::global::set_text_map_propagator(
-        opentelemetry::sdk::propagation::TraceContextPropagator::new(),
-    );
-    let tracer = init_tracer()?;
-    let metrics = init_metrics()?;
-    tracing_subscriber::registry()
-        .with(tracing_subscriber::fmt::layer())
-        .with(tracing_subscriber::filter::LevelFilter::INFO)
-        .with(tracing_opentelemetry::layer().with_tracer(tracer))
-        .with(tracing_opentelemetry::MetricsLayer::new(metrics))
-        .try_init()?;
+    let shutdown_tracer =
+        observe::init().unwrap_or_else(|e| panic!("failed to init observer: {}", e));
 
     let app = Router::new()
         .route("/healthz", get(|| async { StatusCode::OK }))
@@ -32,12 +19,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }),
         )
         .route("/span", get(span))
-        .layer(
-            TraceLayer::new_for_http()
-                .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
-                .on_request(trace::DefaultOnRequest::new().level(Level::INFO))
-                .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
-        )
+        .layer(observe::trace_layer())
         .layer(CatchPanicLayer::new());
 
     let port = std::env::var("ITEM_SERVICE_PORT")
@@ -50,25 +32,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_graceful_shutdown(shutdown_signal())
         .await?;
 
-    opentelemetry::global::shutdown_tracer_provider();
+    shutdown_tracer();
 
     Ok(())
 }
 
-#[instrument]
+#[tracing::instrument]
 async fn span() {
-    tracing::event!(Level::INFO, "sleep event");
+    tracing::event!(observe::LOG_LEVEL, "sleep event");
     tokio::join!(sleep_500ms(), sleep_1500ms());
 }
 
-#[instrument]
+#[tracing::instrument]
 async fn sleep_500ms() {
     tracing::info!("start");
     tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
     tracing::info!("finish");
 }
 
-#[instrument]
+#[tracing::instrument]
 async fn sleep_1500ms() {
     tracing::info!("start");
     tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
@@ -99,52 +81,4 @@ async fn shutdown_signal() {
     }
 
     tracing::info!("signal received, starting graceful shutdown");
-}
-
-fn init_tracer() -> Result<opentelemetry::sdk::trace::Tracer, opentelemetry::trace::TraceError> {
-    opentelemetry_otlp::new_pipeline()
-        .tracing()
-        .with_exporter(
-            opentelemetry_otlp::new_exporter()
-                .tonic()
-                .with_endpoint("http://localhost:4317"),
-        )
-        .with_trace_config(
-            opentelemetry::sdk::trace::config()
-                .with_id_generator(opentelemetry::sdk::trace::RandomIdGenerator::default())
-                .with_resource(opentelemetry::sdk::Resource::from_schema_url(
-                    [
-                        opentelemetry::KeyValue::new(
-                            opentelemetry_semantic_conventions::resource::SERVICE_NAME,
-                            env!("CARGO_PKG_NAME"),
-                        ),
-                        opentelemetry::KeyValue::new(
-                            opentelemetry_semantic_conventions::resource::SERVICE_VERSION,
-                            env!("CARGO_PKG_VERSION"),
-                        ),
-                    ],
-                    "https://opentelemetry.io/schemas/1.20.0",
-                )),
-        )
-        .install_batch(opentelemetry::sdk::runtime::Tokio)
-}
-
-// NOTE: metrics を送るには info を特定の形にする必要がある
-// read mores: https://blog.ymgyt.io/entry/starting_opentelemetry_with_rust/#prometheus
-fn init_metrics() -> Result<
-    opentelemetry::sdk::metrics::controllers::BasicController,
-    opentelemetry::metrics::MetricsError,
-> {
-    opentelemetry_otlp::new_pipeline()
-        .metrics(
-            opentelemetry::sdk::metrics::selectors::simple::inexpensive(),
-            opentelemetry::sdk::export::metrics::aggregation::cumulative_temporality_selector(),
-            opentelemetry::sdk::runtime::Tokio,
-        )
-        .with_exporter(
-            opentelemetry_otlp::new_exporter()
-                .tonic()
-                .with_endpoint("http://localhost:4317"),
-        )
-        .build()
 }
