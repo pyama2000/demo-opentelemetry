@@ -21,7 +21,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }),
         )
         .route("/span", get(span))
-        .layer(observe::trace_layer())
+        .layer(observe::middleware::trace_layer())
         .layer(CatchPanicLayer::new());
 
     let port = std::env::var("ITEM_SERVICE_PORT")
