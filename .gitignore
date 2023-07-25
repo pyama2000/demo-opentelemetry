@@ -1,2 +1,3 @@
 target/
 rpc/gen/rust/Cargo.lock
+node_modules/
