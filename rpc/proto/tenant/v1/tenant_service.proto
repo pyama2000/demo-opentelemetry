@@ -4,6 +4,23 @@ package tenant.v1;
 
 import "lib/v1/id.proto";
 
+message Address {
+  enum NormalizationLevel {
+    NORMALIZATION_LEVEL_UNSPECIFIED = 0;
+    NORMALIZATION_LEVEL_NOT_NOMALIZED = 1;
+    NORMALIZATION_LEVEL_PREFECTURE = 2;
+    NORMALIZATION_LEVEL_CITY = 3;
+    NORMALIZATION_LEVEL_TOWN = 4;
+  }
+
+  NormalizationLevel level = 1;
+  string full = 2;
+  optional string prefecture = 3;
+  optional string city = 4;
+  optional string town = 5;
+  optional string other = 6;
+}
+
 message CreateTenantRequest {
   string name = 1;
   string address = 2;
@@ -13,6 +30,22 @@ message CreateTenantResponse {
   lib.v1.Ulid id = 1;
 }
 
+message ListTenantsRequest {
+  optional uint32 page_size = 1;
+  optional string page_token = 2;
+}
+
+message ListTenantsResponse {
+  message Tenant {
+    string name = 1;
+    Address address = 2;
+  }
+
+  repeated Tenant tenants = 1;
+  string next_page_token = 2;
+}
+
 service TenantService {
   rpc CreateTenant(CreateTenantRequest) returns (CreateTenantResponse);
+  rpc ListTenants(ListTenantsRequest) returns (ListTenantsResponse);
 }
