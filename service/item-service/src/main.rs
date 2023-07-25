@@ -21,7 +21,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }),
         )
         .route("/span", get(span))
-        .layer(observe::trace_layer())
+        .layer(observe::middleware::trace_layer())
         .layer(CatchPanicLayer::new());
 
     let port = std::env::var("ITEM_SERVICE_PORT")
@@ -29,7 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = format!("0.0.0.0:{}", port).parse()?;
 
     tracing::info!("ItemService listening on: {}", &addr);
-    hyper::Server::bind(&addr)
+    axum::Server::bind(&addr)
         .serve(app.into_make_service())
         .with_graceful_shutdown(shutdown_signal())
         .await?;

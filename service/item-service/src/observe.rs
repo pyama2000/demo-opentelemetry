@@ -1,6 +1,9 @@
 use opentelemetry_otlp::WithExportConfig as _;
 use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _};
 
+pub mod middleware;
+
+// TODO: 環境変数から log level を取得する
 pub const LOG_LEVEL: tracing::Level = tracing::Level::INFO;
 
 pub fn init(
@@ -14,15 +17,6 @@ pub fn init(
     let metrics = init_metrics(otel_endpoint)?;
     init_subscriber(tracer, metrics)?;
     Ok(|| opentelemetry::global::shutdown_tracer_provider())
-}
-
-pub fn trace_layer() -> tower_http::trace::TraceLayer<
-    tower_http::classify::SharedClassifier<tower_http::classify::ServerErrorsAsFailures>,
-> {
-    tower_http::trace::TraceLayer::new_for_http()
-        .make_span_with(tower_http::trace::DefaultMakeSpan::new().level(LOG_LEVEL))
-        .on_request(tower_http::trace::DefaultOnRequest::new().level(LOG_LEVEL))
-        .on_response(tower_http::trace::DefaultOnResponse::new().level(LOG_LEVEL))
 }
 
 fn init_subscriber(
@@ -71,7 +65,9 @@ fn init_tracer(
 
 // NOTE: metrics を送るには info を特定の形にする必要がある
 // read mores: https://blog.ymgyt.io/entry/starting_opentelemetry_with_rust/#prometheus
-fn init_metrics(otel_endpoint: impl Into<String>) -> Result<
+fn init_metrics(
+    otel_endpoint: impl Into<String>,
+) -> Result<
     opentelemetry::sdk::metrics::controllers::BasicController,
     opentelemetry::metrics::MetricsError,
 > {
