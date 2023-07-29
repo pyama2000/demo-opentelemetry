@@ -11,7 +11,7 @@ async function main() {
     const { pref, city, town, addr, level} = await normalize(address)
     reply
       .type('application/json')
-      .send({ pref, city, town, addr, level })
+      .send({ full: address, pref, city, town, addr, level })
   });
   const port = parseInt(process.env.ADDRESS_VALIDATOR_PORT || '') || 8080;
   await server.listen({ host: "0.0.0.0", port });
