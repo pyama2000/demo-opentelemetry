@@ -1,0 +1,10 @@
+[package]
+name = "server"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+proto = { version = "0.1.0", path = "../../../rpc/gen/rust" }
+tokio = { version = "1.29.1", default-features = false, features = ["macros", "rt-multi-thread"] }
