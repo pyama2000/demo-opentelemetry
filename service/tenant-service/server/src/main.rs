@@ -3,31 +3,61 @@ use std::sync::Arc;
 
 use proto::tenant::v1::address::NormalizationLevel;
 use proto::tenant::v1::tenant_service_server::TenantServiceServer;
+use proto::tenant::v1::Address;
 use proto::tenant::v1::{
     tenant_service_server::TenantService, CreateTenantRequest, CreateTenantResponse,
     ListTenantsRequest, ListTenantsResponse, TENANT_SERVICE_FILE_DESCRIPTOR_SET,
 };
+use serde::Deserialize;
 use tonic::{Request, Response};
 
 mod config;
 
-#[derive(Clone)]
-struct TenantAddress {
-    level: NormalizationLevel,
+#[derive(Debug, Deserialize)]
+struct AddressValidatorResponse {
+    level: u32,
     full: String,
-    prefecture: Option<String>,
+    pref: Option<String>,
     city: Option<String>,
     town: Option<String>,
-    other: Option<String>,
+    addr: Option<String>,
 }
 
-#[derive(Clone)]
+impl Into<Address> for AddressValidatorResponse {
+    fn into(self) -> Address {
+        let level = match self.level {
+            1 => NormalizationLevel::Prefecture,
+            2 => NormalizationLevel::City,
+            3 => NormalizationLevel::Town,
+            _ => NormalizationLevel::Unspecified,
+        }
+        .into();
+        Address {
+            level,
+            full: self.full,
+            prefecture: self.pref,
+            city: self.city,
+            town: self.town,
+            other: self.addr,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 struct Tenant {
     id: ulid::Ulid,
     name: String,
-    address: TenantAddress,
+    address: Address,
 }
 
+impl Tenant {
+    fn new(name: String, address: Address) -> Self {
+        let id = ulid::Ulid::new();
+        Self { id, name, address }
+    }
+}
+
+#[derive(Debug)]
 struct InMemoryDatastore {
     tenants: Arc<std::sync::Mutex<HashMap<ulid::Ulid, Tenant>>>,
 }
@@ -55,11 +85,15 @@ impl InMemoryDatastore {
 
 struct TenantServiceImpl {
     datastore: InMemoryDatastore,
+    address_validator_url: String,
 }
 
 impl TenantServiceImpl {
-    fn new(datastore: InMemoryDatastore) -> Self {
-        Self { datastore }
+    fn new(datastore: InMemoryDatastore, address_validator_url: impl Into<String>) -> Self {
+        Self {
+            datastore,
+            address_validator_url: address_validator_url.into(),
+        }
     }
 }
 
@@ -67,9 +101,29 @@ impl TenantServiceImpl {
 impl TenantService for TenantServiceImpl {
     async fn create_tenant(
         &self,
-        _: Request<CreateTenantRequest>,
+        req: Request<CreateTenantRequest>,
     ) -> Result<Response<CreateTenantResponse>, tonic::Status> {
-        todo!()
+        let req = req.into_inner();
+        let result: AddressValidatorResponse = reqwest::Client::new()
+            .get(format!(
+                "{}/address/{}",
+                &self.address_validator_url, req.address
+            ))
+            .send()
+            .await
+            .unwrap()
+            .json()
+            .await
+            .unwrap();
+        let tenant = Tenant::new(req.name, result.into());
+        let id = tenant.id;
+        self.datastore.insert(id, tenant);
+        let res = CreateTenantResponse {
+            id: Some(proto::lib::v1::Ulid {
+                value: id.to_string(),
+            }),
+        };
+        Ok(Response::new(res))
     }
 
     async fn list_tenants(
@@ -85,11 +139,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt::init();
 
     let config = config::Config::from_env();
+    let address_validator_url = format!(
+        "http://{}:{}",
+        &config.address_validator_host, &config.address_validator_port
+    );
 
     let reflection_service = tonic_reflection::server::Builder::configure()
         .register_encoded_file_descriptor_set(TENANT_SERVICE_FILE_DESCRIPTOR_SET)
         .build()?;
-    let tenant_service = TenantServiceServer::new(TenantServiceImpl::new(InMemoryDatastore::new()));
+    let tenant_service = TenantServiceServer::new(TenantServiceImpl::new(
+        InMemoryDatastore::new(),
+        address_validator_url,
+    ));
 
     let addr = format!("0.0.0.0:{}", &config.port).parse()?;
     tracing::info!("TenentService listening on: {}", &addr);
