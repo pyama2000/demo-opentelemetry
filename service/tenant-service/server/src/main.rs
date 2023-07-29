@@ -1,6 +1,30 @@
-use proto::tenant::v1::TENANT_SERVICE_FILE_DESCRIPTOR_SET;
+use proto::tenant::v1::tenant_service_server::TenantServiceServer;
+use proto::tenant::v1::{
+    tenant_service_server::TenantService, CreateTenantRequest, CreateTenantResponse,
+    ListTenantsRequest, ListTenantsResponse, TENANT_SERVICE_FILE_DESCRIPTOR_SET,
+};
+use tonic::{Request, Response};
 
 mod config;
+
+struct TenantServiceImpl;
+
+#[tonic::async_trait]
+impl TenantService for TenantServiceImpl {
+    async fn create_tenant(
+        &self,
+        _: Request<CreateTenantRequest>,
+    ) -> Result<Response<CreateTenantResponse>, tonic::Status> {
+        todo!()
+    }
+
+    async fn list_tenants(
+        &self,
+        _: Request<ListTenantsRequest>,
+    ) -> Result<Response<ListTenantsResponse>, tonic::Status> {
+        todo!()
+    }
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -11,11 +35,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let reflection_service = tonic_reflection::server::Builder::configure()
         .register_encoded_file_descriptor_set(TENANT_SERVICE_FILE_DESCRIPTOR_SET)
         .build()?;
+    let tenant_service = TenantServiceServer::new(TenantServiceImpl);
 
     let addr = format!("0.0.0.0:{}", &config.port).parse()?;
     tracing::info!("TenentService listening on: {}", &addr);
     tonic::transport::Server::builder()
         .add_service(reflection_service)
+        .add_service(tenant_service)
         .serve_with_shutdown(addr, shutdown_signal())
         .await?;
     Ok(())
