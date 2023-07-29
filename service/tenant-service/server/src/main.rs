@@ -7,12 +7,13 @@ use proto::tenant::v1::tenant_service_server::TenantServiceServer;
 use proto::tenant::v1::Address;
 use proto::tenant::v1::{
     tenant_service_server::TenantService, CreateTenantRequest, CreateTenantResponse,
-    ListTenantsRequest, ListTenantsResponse, TENANT_SERVICE_FILE_DESCRIPTOR_SET,
+    ListTenantsRequest, ListTenantsResponse,
 };
 use serde::Deserialize;
 use tonic::{Request, Response};
 
 mod config;
+mod service;
 
 #[derive(Debug, Deserialize)]
 struct AddressValidatorResponse {
@@ -161,9 +162,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         &config.address_validator_host, &config.address_validator_port
     );
 
-    let reflection_service = tonic_reflection::server::Builder::configure()
-        .register_encoded_file_descriptor_set(TENANT_SERVICE_FILE_DESCRIPTOR_SET)
-        .build()?;
     let tenant_service = TenantServiceServer::new(TenantServiceImpl::new(
         InMemoryDatastore::new(),
         address_validator_url,
@@ -172,7 +170,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = format!("0.0.0.0:{}", &config.port).parse()?;
     tracing::info!("TenentService listening on: {}", &addr);
     tonic::transport::Server::builder()
-        .add_service(reflection_service)
+        .add_service(service::reflection::reflection_service()?)
         .add_service(tenant_service)
         .serve_with_shutdown(addr, shutdown_signal())
         .await?;
