@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use proto::tenant::v1::address::NormalizationLevel;
+use proto::tenant::v1::list_tenants_response::Tenant;
 use proto::tenant::v1::tenant_service_server::TenantServiceServer;
 use proto::tenant::v1::Address;
 use proto::tenant::v1::{
@@ -44,22 +45,35 @@ impl Into<Address> for AddressValidatorResponse {
 }
 
 #[derive(Debug, Clone)]
-struct Tenant {
+struct TenantModel {
     id: ulid::Ulid,
     name: String,
     address: Address,
 }
 
-impl Tenant {
+impl TenantModel {
     fn new(name: String, address: Address) -> Self {
         let id = ulid::Ulid::new();
         Self { id, name, address }
     }
 }
 
+impl Into<Tenant> for TenantModel {
+    fn into(self) -> Tenant {
+        let id = Some(proto::lib::v1::Ulid {
+            value: self.id.to_string(),
+        });
+        Tenant {
+            id,
+            name: self.name,
+            address: Some(self.address),
+        }
+    }
+}
+
 #[derive(Debug)]
 struct InMemoryDatastore {
-    tenants: Arc<std::sync::Mutex<HashMap<ulid::Ulid, Tenant>>>,
+    tenants: Arc<std::sync::Mutex<HashMap<ulid::Ulid, TenantModel>>>,
 }
 
 impl InMemoryDatastore {
@@ -69,17 +83,14 @@ impl InMemoryDatastore {
         }
     }
 
-    fn insert_tenant(&self, id: ulid::Ulid, tenant: Tenant) {
+    fn insert_tenant(&self, id: ulid::Ulid, tenant: TenantModel) {
         let mut tenants = self.tenants.lock().unwrap();
         tenants.insert(id, tenant);
     }
 
-    fn get(&self, id: ulid::Ulid) -> Option<Tenant> {
+    fn list_tenant(&self) -> Vec<TenantModel> {
         let tenants = self.tenants.lock().unwrap();
-        match tenants.get(&id) {
-            Some(t) => Some(t.clone()),
-            None => None,
-        }
+        tenants.values().cloned().collect()
     }
 }
 
@@ -115,7 +126,7 @@ impl TenantService for TenantServiceImpl {
             .json()
             .await
             .unwrap();
-        let tenant = Tenant::new(req.name, result.into());
+        let tenant = TenantModel::new(req.name, result.into());
         let id = tenant.id;
         self.datastore.insert_tenant(id, tenant);
         let res = CreateTenantResponse {
@@ -130,7 +141,13 @@ impl TenantService for TenantServiceImpl {
         &self,
         _: Request<ListTenantsRequest>,
     ) -> Result<Response<ListTenantsResponse>, tonic::Status> {
-        todo!()
+        let tenants = self.datastore.list_tenant();
+        let tenants: Vec<Tenant> = tenants.into_iter().map(|t| t.into()).collect();
+        let res = ListTenantsResponse {
+            tenants,
+            next_page_token: String::new(),
+        };
+        Ok(Response::new(res))
     }
 }
 
