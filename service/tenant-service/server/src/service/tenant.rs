@@ -1,7 +1,7 @@
 pub mod model;
 
 pub fn tenant_service(
-    datastore: crate::InMemoryDatastore,
+    datastore: crate::datastore::InMemory,
     address_validator_url: impl Into<String>,
 ) -> proto::tenant::v1::tenant_service_server::TenantServiceServer<TenantService> {
     proto::tenant::v1::tenant_service_server::TenantServiceServer::new(TenantService::new(
@@ -11,13 +11,13 @@ pub fn tenant_service(
 }
 
 pub struct TenantService {
-    datastore: crate::InMemoryDatastore,
+    datastore: crate::datastore::InMemory,
     address_validator_url: String,
 }
 
 impl TenantService {
     pub fn new(
-        datastore: crate::InMemoryDatastore,
+        datastore: crate::datastore::InMemory,
         address_validator_url: impl Into<String>,
     ) -> Self {
         Self {

@@ -1,31 +1,6 @@
-use std::collections::HashMap;
-use std::sync::Arc;
-
 mod config;
+mod datastore;
 mod service;
-
-#[derive(Debug)]
-pub struct InMemoryDatastore {
-    tenants: Arc<std::sync::Mutex<HashMap<ulid::Ulid, service::tenant::model::Tenant>>>,
-}
-
-impl InMemoryDatastore {
-    fn new() -> Self {
-        Self {
-            tenants: Arc::new(std::sync::Mutex::new(HashMap::new())),
-        }
-    }
-
-    fn insert_tenant(&self, id: ulid::Ulid, tenant: service::tenant::model::Tenant) {
-        let mut tenants = self.tenants.lock().unwrap();
-        tenants.insert(id, tenant);
-    }
-
-    fn list_tenant(&self) -> Vec<service::tenant::model::Tenant> {
-        let tenants = self.tenants.lock().unwrap();
-        tenants.values().cloned().collect()
-    }
-}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -42,7 +17,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tonic::transport::Server::builder()
         .add_service(service::reflection::reflection_service()?)
         .add_service(service::tenant::tenant_service(
-            InMemoryDatastore::new(),
+            datastore::InMemory::new(),
             address_validator_url,
         ))
         .serve_with_shutdown(addr, shutdown_signal())
