@@ -69,7 +69,7 @@ impl InMemoryDatastore {
         }
     }
 
-    fn insert(&self, id: ulid::Ulid, tenant: Tenant) {
+    fn insert_tenant(&self, id: ulid::Ulid, tenant: Tenant) {
         let mut tenants = self.tenants.lock().unwrap();
         tenants.insert(id, tenant);
     }
@@ -117,7 +117,7 @@ impl TenantService for TenantServiceImpl {
             .unwrap();
         let tenant = Tenant::new(req.name, result.into());
         let id = tenant.id;
-        self.datastore.insert(id, tenant);
+        self.datastore.insert_tenant(id, tenant);
         let res = CreateTenantResponse {
             id: Some(proto::lib::v1::Ulid {
                 value: id.to_string(),
