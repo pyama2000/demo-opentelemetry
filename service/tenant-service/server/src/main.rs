@@ -1,80 +1,12 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use proto::tenant::v1::address::NormalizationLevel;
-use proto::tenant::v1::list_tenants_response::Tenant;
-use proto::tenant::v1::tenant_service_server::TenantServiceServer;
-use proto::tenant::v1::Address;
-use proto::tenant::v1::{
-    tenant_service_server::TenantService, CreateTenantRequest, CreateTenantResponse,
-    ListTenantsRequest, ListTenantsResponse,
-};
-use serde::Deserialize;
-use tonic::{Request, Response};
-
 mod config;
 mod service;
 
-#[derive(Debug, Deserialize)]
-struct AddressValidatorResponse {
-    level: u32,
-    full: String,
-    pref: Option<String>,
-    city: Option<String>,
-    town: Option<String>,
-    addr: Option<String>,
-}
-
-impl Into<Address> for AddressValidatorResponse {
-    fn into(self) -> Address {
-        let level = match self.level {
-            1 => NormalizationLevel::Prefecture,
-            2 => NormalizationLevel::City,
-            3 => NormalizationLevel::Town,
-            _ => NormalizationLevel::Unspecified,
-        }
-        .into();
-        Address {
-            level,
-            full: self.full,
-            prefecture: self.pref,
-            city: self.city,
-            town: self.town,
-            other: self.addr,
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-struct TenantModel {
-    id: ulid::Ulid,
-    name: String,
-    address: Address,
-}
-
-impl TenantModel {
-    fn new(name: String, address: Address) -> Self {
-        let id = ulid::Ulid::new();
-        Self { id, name, address }
-    }
-}
-
-impl Into<Tenant> for TenantModel {
-    fn into(self) -> Tenant {
-        let id = Some(proto::lib::v1::Ulid {
-            value: self.id.to_string(),
-        });
-        Tenant {
-            id,
-            name: self.name,
-            address: Some(self.address),
-        }
-    }
-}
-
 #[derive(Debug)]
-struct InMemoryDatastore {
-    tenants: Arc<std::sync::Mutex<HashMap<ulid::Ulid, TenantModel>>>,
+pub struct InMemoryDatastore {
+    tenants: Arc<std::sync::Mutex<HashMap<ulid::Ulid, service::tenant::model::Tenant>>>,
 }
 
 impl InMemoryDatastore {
@@ -84,71 +16,14 @@ impl InMemoryDatastore {
         }
     }
 
-    fn insert_tenant(&self, id: ulid::Ulid, tenant: TenantModel) {
+    fn insert_tenant(&self, id: ulid::Ulid, tenant: service::tenant::model::Tenant) {
         let mut tenants = self.tenants.lock().unwrap();
         tenants.insert(id, tenant);
     }
 
-    fn list_tenant(&self) -> Vec<TenantModel> {
+    fn list_tenant(&self) -> Vec<service::tenant::model::Tenant> {
         let tenants = self.tenants.lock().unwrap();
         tenants.values().cloned().collect()
-    }
-}
-
-struct TenantServiceImpl {
-    datastore: InMemoryDatastore,
-    address_validator_url: String,
-}
-
-impl TenantServiceImpl {
-    fn new(datastore: InMemoryDatastore, address_validator_url: impl Into<String>) -> Self {
-        Self {
-            datastore,
-            address_validator_url: address_validator_url.into(),
-        }
-    }
-}
-
-#[tonic::async_trait]
-impl TenantService for TenantServiceImpl {
-    async fn create_tenant(
-        &self,
-        req: Request<CreateTenantRequest>,
-    ) -> Result<Response<CreateTenantResponse>, tonic::Status> {
-        let req = req.into_inner();
-        let result: AddressValidatorResponse = reqwest::Client::new()
-            .get(format!(
-                "{}/address/{}",
-                &self.address_validator_url, req.address
-            ))
-            .send()
-            .await
-            .unwrap()
-            .json()
-            .await
-            .unwrap();
-        let tenant = TenantModel::new(req.name, result.into());
-        let id = tenant.id;
-        self.datastore.insert_tenant(id, tenant);
-        let res = CreateTenantResponse {
-            id: Some(proto::lib::v1::Ulid {
-                value: id.to_string(),
-            }),
-        };
-        Ok(Response::new(res))
-    }
-
-    async fn list_tenants(
-        &self,
-        _: Request<ListTenantsRequest>,
-    ) -> Result<Response<ListTenantsResponse>, tonic::Status> {
-        let tenants = self.datastore.list_tenant();
-        let tenants: Vec<Tenant> = tenants.into_iter().map(|t| t.into()).collect();
-        let res = ListTenantsResponse {
-            tenants,
-            next_page_token: String::new(),
-        };
-        Ok(Response::new(res))
     }
 }
 
@@ -162,16 +37,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         &config.address_validator_host, &config.address_validator_port
     );
 
-    let tenant_service = TenantServiceServer::new(TenantServiceImpl::new(
-        InMemoryDatastore::new(),
-        address_validator_url,
-    ));
-
     let addr = format!("0.0.0.0:{}", &config.port).parse()?;
     tracing::info!("TenentService listening on: {}", &addr);
     tonic::transport::Server::builder()
         .add_service(service::reflection::reflection_service()?)
-        .add_service(tenant_service)
+        .add_service(service::tenant::tenant_service(
+            InMemoryDatastore::new(),
+            address_validator_url,
+        ))
         .serve_with_shutdown(addr, shutdown_signal())
         .await?;
     Ok(())
