@@ -1,3 +1,7 @@
+use std::collections::HashMap;
+use std::sync::Arc;
+
+use proto::tenant::v1::address::NormalizationLevel;
 use proto::tenant::v1::tenant_service_server::TenantServiceServer;
 use proto::tenant::v1::{
     tenant_service_server::TenantService, CreateTenantRequest, CreateTenantResponse,
@@ -7,7 +11,57 @@ use tonic::{Request, Response};
 
 mod config;
 
-struct TenantServiceImpl;
+#[derive(Clone)]
+struct TenantAddress {
+    level: NormalizationLevel,
+    full: String,
+    prefecture: Option<String>,
+    city: Option<String>,
+    town: Option<String>,
+    other: Option<String>,
+}
+
+#[derive(Clone)]
+struct Tenant {
+    id: ulid::Ulid,
+    name: String,
+    address: TenantAddress,
+}
+
+struct InMemoryDatastore {
+    tenants: Arc<std::sync::Mutex<HashMap<ulid::Ulid, Tenant>>>,
+}
+
+impl InMemoryDatastore {
+    fn new() -> Self {
+        Self {
+            tenants: Arc::new(std::sync::Mutex::new(HashMap::new())),
+        }
+    }
+
+    fn insert(&self, id: ulid::Ulid, tenant: Tenant) {
+        let mut tenants = self.tenants.lock().unwrap();
+        tenants.insert(id, tenant);
+    }
+
+    fn get(&self, id: ulid::Ulid) -> Option<Tenant> {
+        let tenants = self.tenants.lock().unwrap();
+        match tenants.get(&id) {
+            Some(t) => Some(t.clone()),
+            None => None,
+        }
+    }
+}
+
+struct TenantServiceImpl {
+    datastore: InMemoryDatastore,
+}
+
+impl TenantServiceImpl {
+    fn new(datastore: InMemoryDatastore) -> Self {
+        Self { datastore }
+    }
+}
 
 #[tonic::async_trait]
 impl TenantService for TenantServiceImpl {
@@ -35,7 +89,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let reflection_service = tonic_reflection::server::Builder::configure()
         .register_encoded_file_descriptor_set(TENANT_SERVICE_FILE_DESCRIPTOR_SET)
         .build()?;
-    let tenant_service = TenantServiceServer::new(TenantServiceImpl);
+    let tenant_service = TenantServiceServer::new(TenantServiceImpl::new(InMemoryDatastore::new()));
 
     let addr = format!("0.0.0.0:{}", &config.port).parse()?;
     tracing::info!("TenentService listening on: {}", &addr);
