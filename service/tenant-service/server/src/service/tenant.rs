@@ -41,10 +41,10 @@ impl proto::tenant::v1::tenant_service_server::TenantService for TenantService {
             ))
             .send()
             .await
-            .unwrap()
+            .map_err(|e| tonic::Status::unknown(e.to_string()))?
             .json()
             .await
-            .unwrap();
+            .map_err(|e| tonic::Status::unknown(e.to_string()))?;
         let tenant = model::Tenant::new(req.name, result.into());
         let id = tenant.id;
         self.datastore.insert_tenant(id, tenant).await;
