@@ -1,12 +1,14 @@
 mod config;
 mod datastore;
+mod observe;
 mod service;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tracing_subscriber::fmt::init();
-
     let config = config::Config::from_env();
+    let shutdown_tracer = observe::init(&config.otel.schema_url, &config.otel.endpoint)
+        .unwrap_or_else(|e| panic!("failed to init observer: {}", e));
+
     let address_validator_url = format!(
         "http://{}:{}",
         &config.address_validator_host, &config.address_validator_port
@@ -22,6 +24,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ))
         .serve_with_shutdown(addr, shutdown_signal())
         .await?;
+
+    shutdown_tracer();
     Ok(())
 }
 
