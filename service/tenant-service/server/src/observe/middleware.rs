@@ -92,17 +92,32 @@ pub struct OpentelemetryMakeSpan;
 
 impl<B> tower_http::trace::MakeSpan<B> for OpentelemetryMakeSpan {
     fn make_span(&mut self, req: &http::Request<B>) -> tracing::Span {
-        let span = tracing::span!(
-            LOG_LEVEL,
-            "",
-            otel.name = %req.uri().path(),
-            rpc.system = "grpc",
-            rpc.method = tracing::field::Empty,
-            rpc.service = tracing::field::Empty,
-            rpc.grpc.full_method = tracing::field::Empty,
-            rpc.grpc.status_code = tracing::field::Empty,
-            rpc.grpc.message = tracing::field::Empty,
-        );
+        let span = if req.uri().path()
+            == "/grpc.reflection.v1alpha.ServerReflection/ServerReflectionInfo"
+        {
+            tracing::debug_span!(
+                "",
+                otel.name = %req.uri().path(),
+                rpc.system = "grpc",
+                rpc.method = tracing::field::Empty,
+                rpc.service = tracing::field::Empty,
+                rpc.grpc.full_method = tracing::field::Empty,
+                rpc.grpc.status_code = tracing::field::Empty,
+                rpc.grpc.message = tracing::field::Empty,
+            )
+        } else {
+            tracing::span!(
+                LOG_LEVEL,
+                "",
+                otel.name = %req.uri().path(),
+                rpc.system = "grpc",
+                rpc.method = tracing::field::Empty,
+                rpc.service = tracing::field::Empty,
+                rpc.grpc.full_method = tracing::field::Empty,
+                rpc.grpc.status_code = tracing::field::Empty,
+                rpc.grpc.message = tracing::field::Empty,
+            )
+        };
 
         let parent_cx = opentelemetry::global::get_text_map_propagator(|p| {
             p.extract(&opentelemetry_http::HeaderExtractor(req.headers()))
