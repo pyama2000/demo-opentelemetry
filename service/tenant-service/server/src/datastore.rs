@@ -13,6 +13,7 @@ impl InMemory {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn insert_tenant(
         &self,
         id: ulid::Ulid,
@@ -22,7 +23,8 @@ impl InMemory {
         tenants.insert(id, tenant);
     }
 
-    pub async fn list_tenant(&self) -> Vec<crate::service::tenant::model::Tenant> {
+    #[tracing::instrument(skip_all)]
+    pub async fn list_tenants(&self) -> Vec<crate::service::tenant::model::Tenant> {
         let tenants = self.tenants.lock().await;
         tenants.values().cloned().collect()
     }

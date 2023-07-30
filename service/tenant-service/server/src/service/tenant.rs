@@ -74,7 +74,7 @@ impl proto::tenant::v1::tenant_service_server::TenantService for TenantService {
         &self,
         _: tonic::Request<proto::tenant::v1::ListTenantsRequest>,
     ) -> Result<tonic::Response<proto::tenant::v1::ListTenantsResponse>, tonic::Status> {
-        let tenants = self.datastore.list_tenant().await;
+        let tenants = self.datastore.list_tenants().await;
         let tenants: Vec<proto::tenant::v1::list_tenants_response::Tenant> =
             tenants.into_iter().map(|t| t.into()).collect();
         let res = proto::tenant::v1::ListTenantsResponse {
