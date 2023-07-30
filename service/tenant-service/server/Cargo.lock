@@ -1300,31 +1300,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "server"
-version = "0.1.0"
-dependencies = [
- "http",
- "opentelemetry",
- "opentelemetry-http",
- "opentelemetry-otlp",
- "opentelemetry-semantic-conventions",
- "proto",
- "reqwest",
- "reqwest-middleware",
- "reqwest-tracing",
- "serde",
- "task-local-extensions",
- "tokio",
- "tonic 0.9.2",
- "tonic-reflection",
- "tower-http",
- "tracing",
- "tracing-opentelemetry",
- "tracing-subscriber",
- "ulid",
-]
-
-[[package]]
 name = "sharded-slab"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1415,6 +1390,31 @@ dependencies = [
  "redox_syscall",
  "rustix",
  "windows-sys",
+]
+
+[[package]]
+name = "tenant_service"
+version = "0.1.0"
+dependencies = [
+ "http",
+ "opentelemetry",
+ "opentelemetry-http",
+ "opentelemetry-otlp",
+ "opentelemetry-semantic-conventions",
+ "proto",
+ "reqwest",
+ "reqwest-middleware",
+ "reqwest-tracing",
+ "serde",
+ "task-local-extensions",
+ "tokio",
+ "tonic 0.9.2",
+ "tonic-reflection",
+ "tower-http",
+ "tracing",
+ "tracing-opentelemetry",
+ "tracing-subscriber",
+ "ulid",
 ]
 
 [[package]]
