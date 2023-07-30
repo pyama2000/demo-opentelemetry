@@ -103,7 +103,7 @@ impl<B> tower_http::trace::MakeSpan<B> for OpentelemetryMakeSpan {
                 rpc.service = tracing::field::Empty,
                 rpc.grpc.full_method = tracing::field::Empty,
                 rpc.grpc.status_code = tracing::field::Empty,
-                rpc.grpc.message = tracing::field::Empty,
+                error.message = tracing::field::Empty,
             )
         } else {
             tracing::span!(
@@ -116,6 +116,7 @@ impl<B> tower_http::trace::MakeSpan<B> for OpentelemetryMakeSpan {
                 rpc.grpc.full_method = tracing::field::Empty,
                 rpc.grpc.status_code = tracing::field::Empty,
                 rpc.grpc.message = tracing::field::Empty,
+                error.message = tracing::field::Empty,
             )
         };
 
@@ -171,6 +172,6 @@ where
             opentelemetry_semantic_conventions::trace::RPC_GRPC_STATUS_CODE.as_str(),
             failure_classification.code().to_string(),
         );
-        span.record("rpc.grpc.message", failure_classification.message());
+        span.record("error.message", failure_classification.message());
     }
 }
