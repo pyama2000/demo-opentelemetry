@@ -36,7 +36,12 @@ impl proto::tenant::v1::tenant_service_server::TenantService for TenantService {
         req: tonic::Request<proto::tenant::v1::CreateTenantRequest>,
     ) -> Result<tonic::Response<proto::tenant::v1::CreateTenantResponse>, tonic::Status> {
         let req = req.into_inner();
-        let result: model::AddressValidatorResponse = reqwest::Client::new()
+        let client = reqwest_middleware::ClientBuilder::new(reqwest::Client::new())
+            .with(reqwest_tracing::TracingMiddleware::<
+                reqwest_tracing::SpanBackendWithUrl,
+            >::new())
+            .build();
+        let result: model::AddressValidatorResponse = client
             .get(format!(
                 "{}/address/{}",
                 &self.address_validator_url, req.address
