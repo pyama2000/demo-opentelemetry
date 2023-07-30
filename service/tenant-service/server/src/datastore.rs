@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+#[derive(Debug)]
 pub struct InMemory {
     tenants: Arc<tokio::sync::Mutex<HashMap<ulid::Ulid, crate::service::tenant::model::Tenant>>>,
 }

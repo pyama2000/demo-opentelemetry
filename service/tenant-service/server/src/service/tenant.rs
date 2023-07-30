@@ -10,6 +10,7 @@ pub fn tenant_service(
     ))
 }
 
+#[derive(Debug)]
 pub struct TenantService {
     datastore: crate::datastore::InMemory,
     address_validator_url: String,
@@ -29,7 +30,7 @@ impl TenantService {
 
 #[tonic::async_trait]
 impl proto::tenant::v1::tenant_service_server::TenantService for TenantService {
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument]
     async fn create_tenant(
         &self,
         req: tonic::Request<proto::tenant::v1::CreateTenantRequest>,
@@ -42,10 +43,16 @@ impl proto::tenant::v1::tenant_service_server::TenantService for TenantService {
             ))
             .send()
             .await
-            .map_err(|e| tonic::Status::unknown(e.to_string()))?
+            .map_err(|e| {
+                tracing::error!("{}", e.to_string());
+                tonic::Status::unknown(e.to_string())
+            })?
             .json()
             .await
-            .map_err(|e| tonic::Status::unknown(e.to_string()))?;
+            .map_err(|e| {
+                tracing::error!("{}", e.to_string());
+                tonic::Status::unknown(e.to_string())
+            })?;
         let tenant = model::Tenant::new(req.name, result.into());
         let id = tenant.id;
         self.datastore.insert_tenant(id, tenant).await;
@@ -57,7 +64,7 @@ impl proto::tenant::v1::tenant_service_server::TenantService for TenantService {
         Ok(tonic::Response::new(res))
     }
 
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument]
     async fn list_tenants(
         &self,
         _: tonic::Request<proto::tenant::v1::ListTenantsRequest>,
