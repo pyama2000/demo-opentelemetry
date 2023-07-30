@@ -51,7 +51,7 @@ impl proto::tenant::v1::tenant_service_server::TenantService for TenantService {
             .await
             .map_err(|e| {
                 tracing::error!("{}", e.to_string());
-                tonic::Status::unknown(e.to_string())
+                tonic::Status::internal(e.to_string())
             })?;
         let tenant = model::Tenant::new(req.name, result.into());
         let id = tenant.id;
