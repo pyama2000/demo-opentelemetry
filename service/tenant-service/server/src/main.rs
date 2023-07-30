@@ -18,6 +18,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::info!("TenentService listening on: {}", &addr);
     tonic::transport::Server::builder()
         .layer(observe::middleware::trace_layer())
+        .layer(tower_http::catch_panic::CatchPanicLayer::new())
         .add_service(service::reflection::reflection_service()?)
         .add_service(service::tenant::tenant_service(
             datastore::InMemory::new(),
