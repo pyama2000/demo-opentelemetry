@@ -1,3 +1,5 @@
+use tracing_opentelemetry::OpenTelemetrySpanExt as _;
+
 pub mod model;
 
 pub fn tenant_service(
@@ -41,11 +43,18 @@ impl proto::tenant::v1::tenant_service_server::TenantService for TenantService {
                 reqwest_tracing::SpanBackendWithUrl,
             >::new())
             .build();
+
+        let mut headers = http::HeaderMap::new();
+        opentelemetry::global::get_text_map_propagator(|p| {
+            p.inject_context(&tracing::Span::current().context(), &mut opentelemetry_http::HeaderInjector(&mut headers))
+        });
+
         let result: model::AddressValidatorResponse = client
             .get(format!(
                 "{}/address/{}",
                 &self.address_validator_url, req.address
             ))
+            .headers(headers)
             .send()
             .await
             .map_err(|e| {
