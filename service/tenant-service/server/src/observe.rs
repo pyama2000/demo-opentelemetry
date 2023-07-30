@@ -1,6 +1,11 @@
 use opentelemetry_otlp::WithExportConfig as _;
 use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _};
 
+pub mod middleware;
+
+// TODO: 環境変数から log level を取得する
+pub const LOG_LEVEL: tracing::Level = tracing::Level::INFO;
+
 pub fn init(
     otel_schema_url: &str,
     otel_endpoint: &str,

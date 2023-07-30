@@ -29,6 +29,7 @@ impl TenantService {
 
 #[tonic::async_trait]
 impl proto::tenant::v1::tenant_service_server::TenantService for TenantService {
+    #[tracing::instrument(skip_all)]
     async fn create_tenant(
         &self,
         req: tonic::Request<proto::tenant::v1::CreateTenantRequest>,
@@ -56,6 +57,7 @@ impl proto::tenant::v1::tenant_service_server::TenantService for TenantService {
         Ok(tonic::Response::new(res))
     }
 
+    #[tracing::instrument(skip_all)]
     async fn list_tenants(
         &self,
         _: tonic::Request<proto::tenant::v1::ListTenantsRequest>,

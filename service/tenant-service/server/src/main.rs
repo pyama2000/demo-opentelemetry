@@ -17,6 +17,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = format!("0.0.0.0:{}", &config.port).parse()?;
     tracing::info!("TenentService listening on: {}", &addr);
     tonic::transport::Server::builder()
+        .layer(observe::middleware::trace_layer())
         .add_service(service::reflection::reflection_service()?)
         .add_service(service::tenant::tenant_service(
             datastore::InMemory::new(),
