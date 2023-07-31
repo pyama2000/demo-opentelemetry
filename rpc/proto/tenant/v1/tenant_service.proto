@@ -37,8 +37,9 @@ message ListTenantsRequest {
 
 message ListTenantsResponse {
   message Tenant {
-    string name = 1;
-    Address address = 2;
+    lib.v1.Ulid id = 1;
+    string name = 2;
+    Address address = 3;
   }
 
   repeated Tenant tenants = 1;
