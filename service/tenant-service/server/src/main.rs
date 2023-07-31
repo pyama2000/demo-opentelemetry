@@ -1,3 +1,4 @@
+mod client;
 mod config;
 mod datastore;
 mod observe;
@@ -22,6 +23,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add_service(service::reflection::reflection_service()?)
         .add_service(service::tenant::tenant_service(
             datastore::InMemory::new(),
+            client::Client::new(),
             address_validator_url,
         ))
         .serve_with_shutdown(addr, shutdown_signal())

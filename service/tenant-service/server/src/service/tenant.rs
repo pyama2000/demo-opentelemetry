@@ -1,13 +1,13 @@
-use tracing_opentelemetry::OpenTelemetrySpanExt as _;
-
 pub mod model;
 
 pub fn tenant_service(
     datastore: crate::datastore::InMemory,
+    client: crate::client::Client,
     address_validator_url: impl Into<String>,
 ) -> proto::tenant::v1::tenant_service_server::TenantServiceServer<TenantService> {
     proto::tenant::v1::tenant_service_server::TenantServiceServer::new(TenantService::new(
         datastore,
+        client,
         address_validator_url,
     ))
 }
@@ -15,16 +15,19 @@ pub fn tenant_service(
 #[derive(Debug)]
 pub struct TenantService {
     datastore: crate::datastore::InMemory,
+    client: crate::client::Client,
     address_validator_url: String,
 }
 
 impl TenantService {
     pub fn new(
         datastore: crate::datastore::InMemory,
+        client: crate::client::Client,
         address_validator_url: impl Into<String>,
     ) -> Self {
         Self {
             datastore,
+            client,
             address_validator_url: address_validator_url.into(),
         }
     }
@@ -38,23 +41,14 @@ impl proto::tenant::v1::tenant_service_server::TenantService for TenantService {
         req: tonic::Request<proto::tenant::v1::CreateTenantRequest>,
     ) -> Result<tonic::Response<proto::tenant::v1::CreateTenantResponse>, tonic::Status> {
         let req = req.into_inner();
-        let client = reqwest_middleware::ClientBuilder::new(reqwest::Client::new())
-            .with(reqwest_tracing::TracingMiddleware::<
-                reqwest_tracing::SpanBackendWithUrl,
-            >::new())
-            .build();
 
-        let mut headers = http::HeaderMap::new();
-        opentelemetry::global::get_text_map_propagator(|p| {
-            p.inject_context(&tracing::Span::current().context(), &mut opentelemetry_http::HeaderInjector(&mut headers))
-        });
-
-        let result: model::AddressValidatorResponse = client
-            .get(format!(
-                "{}/address/{}",
-                &self.address_validator_url, req.address
-            ))
-            .headers(headers)
+        let result: model::AddressValidatorResponse = self
+            .client
+            .request(
+                http::Method::GET,
+                format!("{}/address/{}", &self.address_validator_url, req.address),
+                tracing::Span::current(),
+            )
             .send()
             .await
             .map_err(|e| {
