@@ -8,22 +8,104 @@ pub struct AddressValidatorResponse {
     addr: Option<String>,
 }
 
-impl Into<proto::tenant::v1::Address> for AddressValidatorResponse {
-    fn into(self) -> proto::tenant::v1::Address {
-        let level = match self.level {
-            1 => proto::tenant::v1::address::NormalizationLevel::Prefecture,
-            2 => proto::tenant::v1::address::NormalizationLevel::City,
-            3 => proto::tenant::v1::address::NormalizationLevel::Town,
-            _ => proto::tenant::v1::address::NormalizationLevel::Unspecified,
-        }
-        .into();
-        proto::tenant::v1::Address {
-            level,
+impl Into<Address> for AddressValidatorResponse {
+    fn into(self) -> Address {
+        let normalized_address = match self.level {
+            1 => Some(NormalizedAddress::Prefecture {
+                prefecture: self.pref.unwrap(),
+                other: self.addr.unwrap(),
+            }),
+            2 => Some(NormalizedAddress::City {
+                prefecture: self.pref.unwrap(),
+                city: self.city.unwrap(),
+                other: self.addr.unwrap(),
+            }),
+            3 => Some(NormalizedAddress::Town {
+                prefecture: self.pref.unwrap(),
+                city: self.city.unwrap(),
+                town: self.town.unwrap(),
+                other: self.addr.unwrap(),
+            }),
+            _ => None,
+        };
+        Address {
             full: self.full,
-            prefecture: self.pref,
-            city: self.city,
-            town: self.town,
-            other: self.addr,
+            normalized_address,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum NormalizedAddress {
+    Prefecture {
+        prefecture: String,
+        other: String,
+    },
+    City {
+        prefecture: String,
+        city: String,
+        other: String,
+    },
+    Town {
+        prefecture: String,
+        city: String,
+        town: String,
+        other: String,
+    },
+}
+
+#[derive(Debug, Clone)]
+pub struct Address {
+    full: String,
+    normalized_address: Option<NormalizedAddress>,
+}
+
+impl Into<proto::tenant::v1::Address> for Address {
+    fn into(self) -> proto::tenant::v1::Address {
+        if self.normalized_address.is_none() {
+            return proto::tenant::v1::Address {
+                level: proto::tenant::v1::address::NormalizationLevel::NotNomalized.into(),
+                full: self.full,
+                prefecture: None,
+                city: None,
+                town: None,
+                other: None,
+            };
+        }
+        match self.normalized_address.unwrap() {
+            NormalizedAddress::Prefecture { prefecture, other } => proto::tenant::v1::Address {
+                level: proto::tenant::v1::address::NormalizationLevel::Prefecture.into(),
+                full: self.full,
+                prefecture: Some(prefecture),
+                city: None,
+                town: None,
+                other: Some(other),
+            },
+            NormalizedAddress::City {
+                prefecture,
+                city,
+                other,
+            } => proto::tenant::v1::Address {
+                level: proto::tenant::v1::address::NormalizationLevel::City.into(),
+                full: self.full,
+                prefecture: Some(prefecture),
+                city: Some(city),
+                town: None,
+                other: Some(other),
+            },
+            NormalizedAddress::Town {
+                prefecture,
+                city,
+                town,
+                other,
+            } => proto::tenant::v1::Address {
+                level: proto::tenant::v1::address::NormalizationLevel::Town.into(),
+                full: self.full,
+                prefecture: Some(prefecture),
+                city: Some(city),
+                town: Some(town),
+                other: Some(other),
+            },
         }
     }
 }
@@ -32,11 +114,11 @@ impl Into<proto::tenant::v1::Address> for AddressValidatorResponse {
 pub struct Tenant {
     pub id: ulid::Ulid,
     name: String,
-    address: proto::tenant::v1::Address,
+    address: Address,
 }
 
 impl Tenant {
-    pub fn new(name: String, address: proto::tenant::v1::Address) -> Self {
+    pub fn new(name: String, address: Address) -> Self {
         let id = ulid::Ulid::new();
         Self { id, name, address }
     }
@@ -50,7 +132,7 @@ impl Into<proto::tenant::v1::list_tenants_response::Tenant> for Tenant {
         proto::tenant::v1::list_tenants_response::Tenant {
             id,
             name: self.name,
-            address: Some(self.address),
+            address: Some(self.address.into()),
         }
     }
 }
