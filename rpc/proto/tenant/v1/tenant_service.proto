@@ -13,12 +13,31 @@ message Address {
     NORMALIZATION_LEVEL_TOWN = 4;
   }
 
+  message Prefecture {
+    string prefecture = 1;
+    string other = 2;
+  }
+
+  message City {
+    string prefecture = 1;
+    string city = 2;
+    string other = 3;
+  }
+
+  message Town {
+    string prefecture = 1;
+    string city = 2;
+    string town = 3;
+    string other = 4;
+  }
+
   NormalizationLevel level = 1;
   string full = 2;
-  optional string prefecture = 3;
-  optional string city = 4;
-  optional string town = 5;
-  optional string other = 6;
+  oneof normalized_address {
+    Prefecture prefecture = 3;
+    City city = 4;
+    Town town = 5;
+  }
 }
 
 message CreateTenantRequest {
