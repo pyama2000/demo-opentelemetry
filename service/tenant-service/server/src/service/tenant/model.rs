@@ -66,20 +66,18 @@ impl Into<proto::tenant::v1::Address> for Address {
             return proto::tenant::v1::Address {
                 level: proto::tenant::v1::address::NormalizationLevel::NotNomalized.into(),
                 full: self.full,
-                prefecture: None,
-                city: None,
-                town: None,
-                other: None,
+                normalized_address: None,
             };
         }
         match self.normalized_address.unwrap() {
             NormalizedAddress::Prefecture { prefecture, other } => proto::tenant::v1::Address {
                 level: proto::tenant::v1::address::NormalizationLevel::Prefecture.into(),
                 full: self.full,
-                prefecture: Some(prefecture),
-                city: None,
-                town: None,
-                other: Some(other),
+                normalized_address: Some(
+                    proto::tenant::v1::address::NormalizedAddress::Prefecture(
+                        proto::tenant::v1::address::Prefecture { prefecture, other },
+                    ),
+                ),
             },
             NormalizedAddress::City {
                 prefecture,
@@ -88,10 +86,13 @@ impl Into<proto::tenant::v1::Address> for Address {
             } => proto::tenant::v1::Address {
                 level: proto::tenant::v1::address::NormalizationLevel::City.into(),
                 full: self.full,
-                prefecture: Some(prefecture),
-                city: Some(city),
-                town: None,
-                other: Some(other),
+                normalized_address: Some(proto::tenant::v1::address::NormalizedAddress::City(
+                    proto::tenant::v1::address::City {
+                        prefecture,
+                        city,
+                        other,
+                    },
+                )),
             },
             NormalizedAddress::Town {
                 prefecture,
@@ -101,10 +102,14 @@ impl Into<proto::tenant::v1::Address> for Address {
             } => proto::tenant::v1::Address {
                 level: proto::tenant::v1::address::NormalizationLevel::Town.into(),
                 full: self.full,
-                prefecture: Some(prefecture),
-                city: Some(city),
-                town: Some(town),
-                other: Some(other),
+                normalized_address: Some(proto::tenant::v1::address::NormalizedAddress::Town(
+                    proto::tenant::v1::address::Town {
+                        prefecture,
+                        city,
+                        town,
+                        other,
+                    },
+                )),
             },
         }
     }
