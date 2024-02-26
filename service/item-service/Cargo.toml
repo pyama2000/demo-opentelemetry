@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 axum = { version = "0.6.18", features = ["tracing"] }
 http = "0.2.9"
-opentelemetry = { version = "0.18.0", features = ["rt-tokio", "trace", "metrics"] }
+opentelemetry = { version = "0.22.0", features = ["rt-tokio", "trace", "metrics"] }
 opentelemetry-http = "0.7.0"
 opentelemetry-otlp = { version = "0.11.0", features = ["tonic", "trace", "metrics"] }
 opentelemetry-semantic-conventions = "0.10.0"
