@@ -11,7 +11,7 @@ services:
       - "9464:9464" # Prometheus exporter
       - "8888:8888" # OpenTelemetry metrics
   prometheus:
-    image: prom/prometheus:v2.44.0
+    image: prom/prometheus:v2.51.0
     container_name: prometheus
     command:
       - --web.console.templates=/etc/prometheus/consoles
