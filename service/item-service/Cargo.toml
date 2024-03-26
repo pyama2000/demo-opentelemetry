@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-axum = { version = "0.6.18", features = ["tracing"] }
+axum = { version = "0.7.5", features = ["tracing"] }
 http = "0.2.9"
 opentelemetry = { version = "0.18.0", features = ["rt-tokio", "trace", "metrics"] }
 opentelemetry-http = "0.7.0"
