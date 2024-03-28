@@ -1,6 +1,6 @@
 services:
   opentelemetry-collector:
-    image: otel/opentelemetry-collector-contrib:0.79.0
+    image: otel/opentelemetry-collector-contrib:0.97.0
     container_name: opentelemetry-collector
     restart: always
     command: ["--config=/etc/config.yaml"]
